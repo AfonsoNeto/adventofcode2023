@@ -1,4 +1,4 @@
-file_lines = File.readlines('input.txt')
+file_lines = File.readlines('../input.txt')
 
 file_lines.map do |line|
   matching_numbers = line.scan(/\d{1}/)
