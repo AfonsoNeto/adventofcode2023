@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 file_lines = File.readlines('../input.txt')
 
-POSSIBLE_NUMBER_STRINGS = [
-  'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'
-]
+POSSIBLE_NUMBER_STRINGS = %w[
+  one two three four five six seven eight nine
+].freeze
 
 # Generate as REGEX like so: (?=(\d|zero|one|two|three|four|five|six|seven|eight|nine)){1}
 # It uses the positive lookahead (?=) to match overlapping names so "oneight" would match
@@ -11,9 +13,7 @@ THE_REGEX = /(?=(\d|#{POSSIBLE_NUMBER_STRINGS.join('|')})){1}/
 
 # Gets 'one' and returns '1', 'two' and returns '2' and so on...
 def number_name_to_integer_string(name)
-  if POSSIBLE_NUMBER_STRINGS.include?(name)
-    return (POSSIBLE_NUMBER_STRINGS.index(name) + 1).to_s
-  end
+  return (POSSIBLE_NUMBER_STRINGS.index(name) + 1).to_s if POSSIBLE_NUMBER_STRINGS.include?(name)
 
   name
 end

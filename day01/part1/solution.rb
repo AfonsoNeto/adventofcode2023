@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 file_lines = File.readlines('../input.txt')
 
 total = file_lines.map do |line|
