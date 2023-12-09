@@ -68,8 +68,31 @@ def any_gear_part_on_left_or_right?(row_index, starting_num_index, ending_num_in
   next_left_element = csv_as_matrix[row_index][starting_num_index - 2]
   next_right_element = csv_as_matrix[row_index][ending_num_index + 2]
 
-  (a_star_symbol?(left_element) && a_number?(next_left_element)) ||
-  (a_star_symbol?(right_element) && a_number?(next_right_element))
+  is_a_gear_part = false
+  gear_part = nil
+
+  is_gear_part_from_left = (a_star_symbol?(left_element) && a_number?(next_left_element))
+  is_gear_part_from_right = (a_star_symbol?(right_element) && a_number?(next_right_element))
+  is_a_gear_part = is_gear_part_from_left || is_gear_part_from_right
+
+  if is_a_gear_part
+    if is_gear_part_from_left
+      custom_range_check = Proc.new do |range|
+        range.include?(starting_num_index - 2)
+      end
+      left_gear_part = find_relative_gear_part(row_index, starting_num_index - 1, ending_num_index, custom_range_check:)
+
+    elsif is_gear_part_from_right
+      custom_range_check = Proc.new do |range|
+        range.include?(ending_num_index + 2)
+      end
+      right_gear_part = find_relative_gear_part(row_index, starting_num_index, ending_num_index + 2, custom_range_check:)
+    end
+
+    gear_part = left_gear_part || right_gear_part
+  end
+
+  [is_a_gear_part, gear_part]
 end
 
 def any_gear_part_on_any_diagonal?(row_index, starting_num_index, ending_num_index)
@@ -98,15 +121,20 @@ def any_gear_part_on_any_diagonal?(row_index, starting_num_index, ending_num_ind
     (has_symbol_on_bottom_row && has_number_on_next_bottom_row)
 end
 
-def find_relative_gear_part(row_index, starting_num_index, ending_num_index)
-  next_row_as_line = csv_as_matrix[row_index].join('')
+def find_relative_gear_part(target_row_index, starting_num_index, ending_num_index, custom_range_check: nil)
+  next_row_as_line = csv_as_matrix[target_row_index].join('')
   matched_nums_in_row = next_row_as_line.to_enum(:scan, /\d+/).map { Regexp.last_match }
   matched_nums_in_row = matched_nums_in_row.map { [_1, _1.offset(0)] }
   
   gear_part = matched_nums_in_row.find do |elems|
     # [MatchData '123', [1, 2]]
     range = Range.new(*elems[1])
-    range.include?(starting_num_index) || range.include?(ending_num_index)
+
+    if custom_range_check
+      custom_range_check.call(range)
+    else
+      range.include?(starting_num_index) || range.include?(ending_num_index)
+    end
   end
   
   gear_part = gear_part[0].to_s.to_i if gear_part
@@ -136,7 +164,8 @@ csv_as_matrix.each_with_index do |row, i|
 
     gear_part_on_upper_row, gear_part_on_upper   = any_gear_part_on_adjacent_row?(i, starting_num_index, ending_num_index, position: :upper)
     gear_part_on_bottom_row, gear_part_on_bottom = any_gear_part_on_adjacent_row?(i, starting_num_index, ending_num_index, position: :upper)
-
+    gear_part_on_left_or_right, gear_on_left_or_right = any_gear_part_on_left_or_right?(i, starting_num_index, ending_num_index)
+    
     # puts "num: #{num}"
     # puts "gear_part_on_upper_row: #{gear_part_on_upper_row}" if gear_part_on_upper_row
     # puts "gear_part_on_upper: #{gear_part_on_upper}" if gear_part_on_upper
@@ -145,14 +174,24 @@ csv_as_matrix.each_with_index do |row, i|
 
     valid_num = gear_part_on_upper_row ||
                 gear_part_on_bottom_row ||
-                any_gear_part_on_left_or_right?(i, starting_num_index, ending_num_index) ||
+                gear_part_on_left_or_right ||
                 any_gear_part_on_any_diagonal?(i, starting_num_index, ending_num_index)
 
-    all_valid_nums << [num.to_i, (gear_part_on_upper_row || gear_part_on_bottom_row), gear_part_on_upper, gear_part_on_bottom] if valid_num
+    if valid_num
+      all_valid_nums << {
+        num:,
+        is_a_gear_part: (
+          gear_part_on_upper_row || gear_part_on_bottom_row  || gear_part_on_left_or_right
+        ),
+        gear_part: (
+          gear_part_on_upper || gear_part_on_bottom || gear_on_left_or_right
+        )
+      }
+    end
   end
 end
 #=END(MAIN BLOCK) ----------------------------------------
 
 puts(
-  all_valid_nums.select {|ary| ary[1] }.map { [_1[0], (_1[2] || _1[3])] }.inspect
+  all_valid_nums.select {|hsh| hsh[:is_a_gear_part] }.map { [_1[:num], (_1[:gear_part])] }.inspect
 )
